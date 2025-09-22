@@ -17,9 +17,9 @@ services:
     image: mariadb:latest
     environment:
       MYSQL_ROOT_PASSWORD: "password"
-      MYSQL_USER: "student"
-      MYSQL_PASSWORD: "veiligwachtwoord"
-      MYSQL_DATABASE: "site1db"
+      MYSQL_USER: "gebruiker"
+      MYSQL_PASSWORD: "password"
+      MYSQL_DATABASE: "forevertools"
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
       - site1-certs:/ssl
@@ -53,7 +53,6 @@ services:
       MYSQL_ROOT_PASSWORD: "password"
       MYSQL_USER: "medewerker"
       MYSQL_PASSWORD: "veiligwachtwoord"
-      MYSQL_DATABASE: "site2db"
     ports:
       - 3307:3306
     volumes:

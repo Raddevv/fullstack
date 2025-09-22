@@ -2,7 +2,7 @@
 session_start();
 
 // 4everToolsDB require
-require_once 'background/4everToolsDB.php';
+require_once '4everToolsDB.php';
 
 try {
     $stmt = $pdo->query("SELECT * FROM klant LIMIT 5");
@@ -11,7 +11,7 @@ try {
     print_r($rows);
     echo "</pre>";
 } catch (Exception $e) {
-    echo "quer failed: " . $e->getMessage();
+    echo "Query failed: " . $e->getMessage();
 }
 ?>
 
