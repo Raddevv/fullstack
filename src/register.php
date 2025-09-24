@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-// If user is already logged in, redirect to dashboard
+// if logged in, redirect
 if (isset($_SESSION['user_id'])) {
     header('Location: dashboard.php');
     exit();
@@ -10,7 +10,7 @@ if (isset($_SESSION['user_id'])) {
 // 4everToolsDB require
 require_once '4everToolsDB.php';
 
-// Handle registration form submission
+// form
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $voornaam = trim($_POST['voornaam']);
     $achternaam = trim($_POST['achternaam']);
@@ -19,21 +19,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $wachtwoord_confirm = $_POST['wachtwoord_confirm'];
 
     try {
-        // Validate password
+        // password validation
         if (strlen($wachtwoord) < 8) {
             $error_message = "Password must be at least 8 characters long";
         } elseif ($wachtwoord !== $wachtwoord_confirm) {
-            $error_message = "Passwords do not match";
+            $error_message = "Passwords does not match";
         } else {
-            // Hash the password
+            // password hash
             $hashed_password = password_hash($wachtwoord, PASSWORD_DEFAULT);
             
-            // Insert new user with hashed password
+            // insert hash password
             $stmt = $pdo->prepare("INSERT INTO klant (voornaam, achternaam, wachtwoord, admin) VALUES (?, ?, ?, 0)");
             $stmt->execute([$voornaam, $achternaam, $hashed_password]);
             
-            // Set success message
-            $success_message = "Account successfully created! You can now login.";
+            $success_message = "Account made, you can now login";
         }
     } catch (PDOException $e) {
         $error_message = "Registration error: " . $e->getMessage();

@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-// If user is already logged in, redirect to dashboard
+// if user is already logged in, redirect to dashboard
 if (isset($_SESSION['user_id'])) {
     header('Location: dashboard.php');
     exit();
@@ -10,16 +10,16 @@ if (isset($_SESSION['user_id'])) {
 // 4everToolsDB require
 require_once '4everToolsDB.php';
 
-// Add admin and wachtwoord columns if they don't exist
+// add admin and password column if not exists
 try {
     $pdo->exec("ALTER TABLE klant ADD COLUMN IF NOT EXISTS admin TINYINT(1) NOT NULL DEFAULT 0");
     $pdo->exec("ALTER TABLE klant ADD COLUMN IF NOT EXISTS wachtwoord VARCHAR(255)");
     
-    // Set default password for all accounts that don't have one
+    // set default pass for accounts made before password
     $default_password = password_hash('Password123', PASSWORD_DEFAULT);
     $pdo->exec("UPDATE klant SET wachtwoord = '$default_password' WHERE wachtwoord IS NULL");
     
-    // Insert or update Jordy Meijer as admin with default password
+    // insert/update admin
     $default_admin_password = password_hash('admin123', PASSWORD_DEFAULT);
     $stmt = $pdo->prepare("INSERT INTO klant (voornaam, achternaam, wachtwoord, admin) 
                           SELECT 'Jordy', 'Meijer', ?, 1 
@@ -33,30 +33,30 @@ try {
     $stmt = $pdo->prepare("UPDATE klant SET admin = 1 
                           WHERE voornaam = 'Jordy' AND achternaam = 'Meijer'");
     $stmt->execute();
-} catch (PDOException $e) {
-    // Silently handle the error if column already exists
+} catch (PDOException $e) { // <-- exception 
+    // if column exists, silence error
 }
 
-// Handle login form submission
+// form login handler
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $voornaam = $_POST['voornaam'];
     $achternaam = $_POST['achternaam'];
     $wachtwoord = $_POST['wachtwoord'];
     
     try {
-        // Query to check user credentials
+        // credential check
         $stmt = $pdo->prepare("SELECT id, voornaam, achternaam, wachtwoord, admin FROM klant WHERE voornaam = ? AND achternaam = ?");
         $stmt->execute([$voornaam, $achternaam]);
         $user = $stmt->fetch();
 
-        // Verify user exists and password is correct
+        // verify existence
         if ($user && password_verify($wachtwoord, $user['wachtwoord'])) {
-            // Set session variables
+            // set session vars
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['voornaam'] = $user['voornaam'];
             $_SESSION['admin'] = $user['admin'];
             
-            // Redirect to dashboard
+            // dashboard redirect
             header('Location: dashboard.php');
             exit();
         } else {
