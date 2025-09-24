@@ -1,7 +1,157 @@
 body {
-    background-image:linear-gradient(to top, #aeaeae, #fff);
+    height:100%;
+    width:100%;
+    scrollbar-width: 5%;
+    background-color:#dddddd;
 }
 
 .storageList {
-
+    height: 100%;
+    width: 100%;
+    overflow-y: scroll;
+    scrollbar-width: 5%;
+    background-color: #2c2c2c;
+    color:#ffffff;
+    font-family:'system-ui';
+    font:'system-ui';
+    font-weight: light;
+    padding: 10px;
 }
+
+        .login-container {
+            font-family:'system-ui';
+            font:'system-ui';
+            font-weight: light;
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .buttonGood {
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .buttonGood:hover {
+            background-color: #218838;
+        }
+        .login-link {
+            text-align: center;
+            margin-top: 15px;
+        }
+        .login-link a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        .login-container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .error-message {
+            font-family:'-apple-system';
+            font-weight:normal;
+            font-style: oblique;
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #f22525;
+            color: #ffffff;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            transform: translateZ(2px);
+            color:#dddddd;
+            background-color: #df2323;
+        }
+
+        .container { 
+            font-family:'system-ui';
+            font:'system-ui';
+            font-weight: light;
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+
+        .product-form { 
+            font-family:'system-ui';
+            font:'system-ui';
+            font-weight: light;
+            margin-bottom: 30px; 
+            padding: 20px; 
+            background: #ffffff; 
+        }
+
+        .product-table { 
+            font-family:'system-ui';
+            font:'system-ui';
+            font-weight: bolder;
+            width: 100%; 
+            border-collapse: collapse; }
+
+        .product-table th, 
+        .product-table td { 
+            padding: 10px; 
+            background-color: #ffffff;
+            border: 1px solid #ddd; }
+
+        .message { 
+            padding: 10px; 
+            margin-bottom: 20px;  
+        }
+
+        .success { 
+            background: #d4edda; 
+            color: #155724; }
+
+        .error { 
+            background: #f8d7da; 
+            color: #721c24; }
+
+        .input {
+            width: 100%;
+            margin-top: 2.5px;
+            margin-bottom: 2.5px;
+            padding: 8px;
+            border: 1px solid #ddd; 
+            align-items:center;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }

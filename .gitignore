@@ -1,1 +1,9 @@
 /src/partials/
+/src/background/connect.php
+.gitattributes
+src/background/storage/documentation.txt
+4everToolsDB.php
+MINDMAP.md
+init.sql
+php.ini
+README.md
