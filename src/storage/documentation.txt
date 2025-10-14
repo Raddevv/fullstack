@@ -22,3 +22,29 @@
 # - producten kunnen verwijdered worden (ja)
 # - *(bonus) je kan nu registreren
 # - *(bonus) je kan nu inloggen
+
+-- 
+data sanitatie
+data validatie
+wachtwoorden buiten github houden
+prepared statements
+
+
+-- sprint1 feedback:
+// tips:
+# - Creeër functionaliteit voor admins
+# - Paginas voor meerdere features (wat betekent dit?)
+// tops:
+# - Schone code
+# - Web responsive
+# - PHP functioneert goed
+
+--
+// planning voor de laatste 2 weken:
+# - fabrieken kunnen aangemaakt worden en hebben een voorraad voor elk
+# - fabrieken hebben hun eigen voorraad
+# - als je iets bestelt
+== stelling == 
+een product staat op voorraad met maar 2 in stock, iemand bestelt er 3, in plaats van dat ze op een
+of andere manier 3 bestellen kunnen ze maar 2 bestellen en wordt er gezegd dat er niet genoeg op
+voorraad zit

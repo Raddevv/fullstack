@@ -13,6 +13,7 @@ require_once '4everToolsDB.php';
 // add admin and password column if not exists
 try {
     $pdo->exec("ALTER TABLE klant ADD COLUMN IF NOT EXISTS admin TINYINT(1) NOT NULL DEFAULT 0");
+    $pdo->exec("ALTER TABLE klant ADD COLUMN IF NOT EXISTS medewerker TINYINT(1) NOT NULL DEFAULT 0");
     $pdo->exec("ALTER TABLE klant ADD COLUMN IF NOT EXISTS wachtwoord VARCHAR(255)");
     
     // set default pass for accounts made before password
@@ -28,11 +29,33 @@ try {
                               WHERE voornaam = 'Jordy' AND achternaam = 'Meijer'
                           ) LIMIT 1");
     $stmt->execute([$default_admin_password]);
-    $stmt->execute();
     
     $stmt = $pdo->prepare("UPDATE klant SET admin = 1 
                           WHERE voornaam = 'Jordy' AND achternaam = 'Meijer'");
     $stmt->execute();
+
+    // ensure products have a stock column
+    $pdo->exec("ALTER TABLE product ADD COLUMN IF NOT EXISTS stock INT NOT NULL DEFAULT 0");
+
+    // create audit and purchase order tables if they don't exist
+    $pdo->exec("CREATE TABLE IF NOT EXISTS stock_audit (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        product_id INT NOT NULL,
+        user_id INT NULL,
+        change_amount INT NOT NULL,
+        reason VARCHAR(255) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS purchase_order (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        product_id INT NOT NULL,
+        amount INT NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'ordered',
+        created_by INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        received_at TIMESTAMP NULL
+    ) ENGINE=InnoDB");
 } catch (PDOException $e) { // <-- exception 
     // if column exists, silence error
 }
@@ -106,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
         
         <div class="login-link" style="text-align: center; margin-top: 15px;">
-            Need an account? <a href="register.php" style="color: #007bff; text-decoration: none;">Register here</a>
+            Need an account? <a href="register.php" style="color: #4e18e4ff; text-decoration: none;">Registration</a>
         </div>
     </div>
 </body>
