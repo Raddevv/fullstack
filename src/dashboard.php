@@ -113,14 +113,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['error'] = 'Error cancelling order: ' . $e->getMessage();
                 }
                 break;
+            case 'edit_customer_order':
+                // customers can edit their own orders (within time window)
+                $order_id = (int)$_POST['order_id'];
+                $items = $_POST['items'] ?? [];
+                try {
+                    // fetch order
+                    $ost = $pdo->prepare("SELECT * FROM customer_order WHERE id = ?");
+                    $ost->execute([$order_id]);
+                    $order = $ost->fetch();
+                    if (!$order) { $_SESSION['error'] = 'Order not found'; break; }
+                    if ($order['user_id'] != ($_SESSION['user_id'] ?? 0)) { $_SESSION['error'] = 'Not your order'; break; }
+                    if ($order['status'] !== 'placed') { $_SESSION['error'] = 'Order not editable'; break; }
+                    $created = strtotime($order['created_at']);
+                    $editable_window = 60 * 60 * 2; // 2 hours
+                    if ((time() - $created) > $editable_window) { $_SESSION['error'] = 'Edit window expired'; break; }
+
+                    // load existing items
+                    $stmt = $pdo->prepare("SELECT * FROM customer_order_item WHERE order_id = ?");
+                    $stmt->execute([$order_id]);
+                    $existing = [];
+                    foreach ($stmt->fetchAll() as $row) $existing[$row['id']] = $row;
+
+                    $pdo->beginTransaction();
+                    $audit = $pdo->prepare("INSERT INTO stock_audit (product_id, user_id, change_amount, reason) VALUES (?, ?, ?, ?)");
+                    $upProduct = $pdo->prepare("UPDATE product SET stock = GREATEST(0, stock + ?) WHERE id = ?");
+                    $downProduct = $pdo->prepare("UPDATE product SET stock = GREATEST(0, stock - ?) WHERE id = ?");
+
+                    foreach ($items as $item_id => $it) {
+                        $iid = (int)$it['item_id'];
+                        $newq = max(0, (int)$it['quantity']);
+                        if (!isset($existing[$iid])) continue;
+                        $oldq = (int)$existing[$iid]['quantity'];
+                        $pid = (int)$existing[$iid]['product_id'];
+                        if ($newq == $oldq) continue;
+                        if ($newq < $oldq) {
+                            // restore difference to stock
+                            $diff = $oldq - $newq;
+                            $upProduct->execute([$diff, $pid]);
+                            $audit->execute([$pid, $_SESSION['user_id'] ?? null, $diff, 'order_edit_restore']);
+                        } else {
+                            // increase order: need to reduce stock further
+                            $diff = $newq - $oldq;
+                            // check available stock
+                            $ps = $pdo->prepare("SELECT stock FROM product WHERE id = ?");
+                            $ps->execute([$pid]);
+                            $prow = $ps->fetch();
+                            $avail = $prow ? (int)$prow['stock'] : 0;
+                            if ($avail < $diff) {
+                                $pdo->rollBack();
+                                $_SESSION['error'] = 'Not enough stock to increase order for product ID ' . $pid;
+                                break 2;
+                            }
+                            $downProduct->execute([$diff, $pid]);
+                            $audit->execute([$pid, $_SESSION['user_id'] ?? null, -$diff, 'order_edit_consume']);
+                        }
+                        // update item quantity
+                        $u = $pdo->prepare("UPDATE customer_order_item SET quantity = ? WHERE id = ?");
+                        $u->execute([$newq, $iid]);
+                    }
+                    $pdo->commit();
+                    $_SESSION['message'] = 'Order updated successfully.';
+                } catch (PDOException $e) {
+                    if ($pdo->inTransaction()) $pdo->rollBack();
+                    $_SESSION['error'] = 'Error editing order: ' . $e->getMessage();
+                }
+                break;
             case 'add_product':
-                // adding a product
+                // adding a product (staff only)
+                if (empty($_SESSION['admin']) && empty($_SESSION['medewerker'])) {
+                    $_SESSION['error'] = 'Permission denied';
+                    break;
+                }
                 $type = $_POST['type'];
-                $fabriekherkomst = $_POST['fabriekherkomst'];
                 $prijs = $_POST['prijs'];
                 $waardeinkoop = $_POST['waardeinkoop'];
                 $waardeverkoop = $_POST['waardeverkoop'];
-                
+                $factory_id = isset($_POST['factory_id']) ? (int)$_POST['factory_id'] : 0;
+                // Resolve factory name if selected, fallback to posted free-text
+                $fabriekherkomst = '';
+                if ($factory_id) {
+                    $fstmt = $pdo->prepare("SELECT name FROM factories WHERE id = ?");
+                    $fstmt->execute([$factory_id]);
+                    $frow = $fstmt->fetch();
+                    $fabriekherkomst = $frow ? $frow['name'] : '';
+                } else {
+                    $fabriekherkomst = isset($_POST['fabriekherkomst']) ? $_POST['fabriekherkomst'] : '';
+                }
                 try {
                     $stmt = $pdo->prepare("INSERT INTO product (type, fabriekherkomst, prijs, waardeinkoop, waardeverkoop, bestelling_id) VALUES (?, ?, ?, ?, ?, 1)");
                     $stmt->execute([$type, $fabriekherkomst, $prijs, $waardeinkoop, $waardeverkoop]);
@@ -281,6 +360,14 @@ try {
     $products = [];
 }
 
+// fetch factories for product form
+try {
+    $fstmt = $pdo->query("SELECT * FROM factories ORDER BY name ASC");
+    $factories = $fstmt->fetchAll();
+} catch (PDOException $e) {
+    $factories = [];
+}
+
 // Low-stock detection (threshold can be adjusted)
 $low_stock_threshold = 5;
 $low_stock_items = [];
@@ -425,7 +512,20 @@ try {
 
                 <div>
                     <label for="fabriekherkomst">Factory Origin:</label>
-                    <input class="input" type="text" id="fabriekherkomst" name="fabriekherkomst" required>
+                    <?php if (!empty($factories)): ?>
+                        <select class="input" name="factory_id" id="factory_id">
+                            <option value="0">-- select factory --</option>
+                            <?php foreach ($factories as $f): ?>
+                                <option value="<?php echo $f['id']; ?>"><?php echo htmlspecialchars($f['name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div style="font-size:0.9rem;color:#888;margin-top:6px;">Or enter custom factory name below</div>
+                        <input class="input" type="text" id="fabriekherkomst" name="fabriekherkomst" placeholder="Custom factory name (optional)">
+                        <p><a href="createFactory.php">Manage factories</a></p>
+                    <?php else: ?>
+                        <input class="input" type="text" id="fabriekherkomst" name="fabriekherkomst" required>
+                        <p><a href="createFactory.php">Create factories</a></p>
+                    <?php endif; ?>
                 </div>
 
                 <div>
@@ -607,6 +707,29 @@ try {
                                         <input type="hidden" name="order_id" value="<?php echo $co['id']; ?>">
                                         <button class="small-button" type="submit" onclick="return confirm('Cancel and restore stock for this order?')">Cancel</button>
                                     </form>
+                                <?php elseif ($co['status'] === 'placed' && $co['user_id'] == ($_SESSION['user_id'] ?? 0)): ?>
+                                    <!-- allow owner to edit within time window -->
+                                    <?php
+                                        $created = strtotime($co['created_at']);
+                                        $editable_window = 60 * 60 * 2; // 2 hours
+                                        $editable = (time() - $created) <= $editable_window;
+                                    ?>
+                                    <?php if ($editable): ?>
+                                        <form method="post" action="" style="display:block; margin-top:6px;">
+                                            <input type="hidden" name="action" value="edit_customer_order">
+                                            <input type="hidden" name="order_id" value="<?php echo $co['id']; ?>">
+                                            <?php foreach ($itms as $it): ?>
+                                                <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                                                    <label style="width:260px; margin:0;"><?php echo htmlspecialchars($it['type']); ?> (item <?php echo $it['id']; ?>)</label>
+                                                    <input type="hidden" name="items[<?php echo $it['id']; ?>][item_id]" value="<?php echo $it['id']; ?>">
+                                                    <input class="small-input" type="number" name="items[<?php echo $it['id']; ?>][quantity]" value="<?php echo $it['quantity']; ?>" min="0">
+                                                </div>
+                                            <?php endforeach; ?>
+                                            <button class="small-button" type="submit">Save changes</button>
+                                        </form>
+                                    <?php else: ?>
+                                        -
+                                    <?php endif; ?>
                                 <?php else: ?>
                                     -
                                 <?php endif; ?>

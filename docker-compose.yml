@@ -1,75 +1,32 @@
-version: "3.9"
+version: '3.9'
 
 services:
-  # PHP + Apache for Site 1
-  site1-php:
-    build: .
+  db:
+    image: mysql:8.0
+    container_name: forevertools_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: forevertools
+      MYSQL_USER: student
+      MYSQL_PASSWORD: studentpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: forevertools_pma
+    restart: always
+    environment:
+      PMA_HOST: db
+      PMA_USER: student
+      PMA_PASSWORD: studentpass
+    ports:
+      - "8080:80"
     depends_on:
-      - site1-mysql
-    ports:
-      - 80:80
-    volumes:
-      - ./src:/var/www/html/
-      - ./php.ini:/usr/local/etc/php/php.ini
-
-  # Database for Site 1
-  site1-mysql:
-    image: mariadb:latest
-    environment:
-      MYSQL_ROOT_PASSWORD: "password"
-      MYSQL_USER: "student"
-      MYSQL_PASSWORD: "veiligwachtwoord"
-      MYSQL_DATABASE: "site1db"
-    volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      - site1-certs:/ssl
-      - site1-mysqlconf:/etc/mysql/conf.d/
-    ports:
-      - 3306:3306
-
-  # PhpMyAdmin for Site 1
-  site1-phpmyadmin:
-    image: phpmyadmin
-    ports:
-      - 8080:80
-    environment:
-      PMA_HOST: site1-mysql
-
-  # PHP + Apache for Site 2
-  site2-php:
-    build: .
-    depends_on:
-      - mysql2
-    ports:
-      - 8081:80
-    volumes:
-      - ./site2:/var/www/html/
-      - ./php.ini:/usr/local/etc/php/php.ini
-
-  # Database for Site 2
-  mysql2:
-    image: mariadb:latest
-    environment:
-      MYSQL_ROOT_PASSWORD: "password"
-      MYSQL_USER: "medewerker"
-      MYSQL_PASSWORD: "veiligwachtwoord"
-      MYSQL_DATABASE: "site2db"
-    ports:
-      - 3307:3306
-    volumes:
-      - site2-certs:/ssl
-      - site2-mysqlconf:/etc/mysql/conf.d/
-
-  # PhpMyAdmin for Site 2
-  site2-phpmyadmin:
-    image: phpmyadmin
-    ports:
-      - 8082:80
-    environment:
-      PMA_HOST: mysql2
+      - db
 
 volumes:
-  site1-certs:
-  site1-mysqlconf:
-  site2-certs:
-  site2-mysqlconf:
+  db_data:

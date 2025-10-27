@@ -10,6 +10,55 @@ if (isset($_SESSION['user_id'])) {
 // 4everToolsDB require
 require_once '4everToolsDB.php';
 
+// Simple migration runner: applies .sql files from src/background/migrations
+function run_migrations(PDO $pdo)
+{
+    $migrationsDir = __DIR__ . DIRECTORY_SEPARATOR . 'background' . DIRECTORY_SEPARATOR . 'migrations';
+    if (!is_dir($migrationsDir)) return;
+
+    // ensure migrations table
+    $pdo->exec("CREATE TABLE IF NOT EXISTS migrations (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+    $applied = [];
+    $stmt = $pdo->query("SELECT name FROM migrations");
+    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $r) {
+        $applied[$r] = true;
+    }
+
+    $files = glob($migrationsDir . DIRECTORY_SEPARATOR . '*.sql');
+    sort($files, SORT_STRING);
+    foreach ($files as $file) {
+        $name = basename($file);
+        if (!empty($applied[$name])) continue;
+        $sql = file_get_contents($file);
+        if ($sql === false) continue;
+        // split statements on semicolon followed by newline
+        $parts = preg_split('/;\s*\n/', $sql);
+        try {
+            $pdo->beginTransaction();
+            foreach ($parts as $part) {
+                $s = trim($part);
+                if ($s === '') continue;
+                $pdo->exec($s);
+            }
+            $ins = $pdo->prepare("INSERT INTO migrations (name) VALUES (?)");
+            $ins->execute([$name]);
+            $pdo->commit();
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            // surface error to session so it's visible on load
+            $_SESSION['error'] = 'Migration failed (' . $name . '): ' . $e->getMessage();
+            break;
+        }
+    }
+}
+
+run_migrations($pdo);
+
 // add admin and password column if not exists
 try {
     $pdo->exec("ALTER TABLE klant ADD COLUMN IF NOT EXISTS admin TINYINT(1) NOT NULL DEFAULT 0");
@@ -56,6 +105,13 @@ try {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         received_at TIMESTAMP NULL
     ) ENGINE=InnoDB");
+    // factories table
+    $pdo->exec("CREATE TABLE IF NOT EXISTS factories (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        country VARCHAR(255) DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 } catch (PDOException $e) { // <-- exception 
     // if column exists, silence error
 }

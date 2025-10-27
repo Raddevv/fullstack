@@ -252,7 +252,7 @@ LIMIT 1;
 
 -- Update existing user to admin if they exist
 UPDATE `forevertools`.`klant` 
-SET `admin` = 1 
+SET `admin` = 1  
 WHERE `voornaam` = 'Jordy' AND `achternaam` = 'Meijer';
 
 SET SQL_MODE=@OLD_SQL_MODE;

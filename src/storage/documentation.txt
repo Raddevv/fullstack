@@ -48,3 +48,17 @@ prepared statements
 een product staat op voorraad met maar 2 in stock, iemand bestelt er 3, in plaats van dat ze op een
 of andere manier 3 bestellen kunnen ze maar 2 bestellen en wordt er gezegd dat er niet genoeg op
 voorraad zit
+
+
+-- wat kun je nu?
+// 
+# - je kan een account aanmaken
+# - je kan inloggen en uitloggen van accounts
+# - er is EEN admin account
+# - je kan producten aanmaken als admin
+# - je kan meer product bestellen als admin
+# - je kan als klant producten bestellen
+# - je kan als beiden klant en admin product orders zien
+# - je kan meerdere van een product in een order zetten als klant
+# - je kan customer orders zien
+x - je kan nog geen fabriek maken

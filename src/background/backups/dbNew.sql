@@ -3,28 +3,27 @@ SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 
 -- -----------------------------------------------------
--- Schema forevertools
+-- Schema site1db
 -- -----------------------------------------------------
-CREATE SCHEMA IF NOT EXISTS `forevertools` DEFAULT CHARACTER SET utf8 ;
-USE `forevertools` ;
+CREATE SCHEMA IF NOT EXISTS `site1db` DEFAULT CHARACTER SET utf8 ;
+USE `site1db` ;
 
 -- -----------------------------------------------------
--- Table `forevertools`.`klant`
+-- Table `site1db`.`klant`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `forevertools`.`klant` (
+CREATE TABLE IF NOT EXISTS `site1db`.`klant` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `voornaam` VARCHAR(50) NOT NULL,
   `achternaam` VARCHAR(50) NOT NULL,
   `wachtwoord` VARCHAR(255) NOT NULL,
   `admin` TINYINT(1) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_voornaam_achternaam` (`voornaam`, `achternaam`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
 
 -- -----------------------------------------------------
--- Table `forevertools`.`product`
+-- Table `site1db`.`product`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `forevertools`.`product` (
+CREATE TABLE IF NOT EXISTS `site1db`.`product` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `type` VARCHAR(200) NOT NULL,
   `fabriekherkomst` VARCHAR(200) NOT NULL,
@@ -36,9 +35,9 @@ CREATE TABLE IF NOT EXISTS `forevertools`.`product` (
 ENGINE = InnoDB;
 
 -- -----------------------------------------------------
--- Table `forevertools`.`locaties`
+-- Table `site1db`.`locaties`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `forevertools`.`locaties` (
+CREATE TABLE IF NOT EXISTS `site1db`.`locaties` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `adres` VARCHAR(100) NOT NULL,
   `postcode` VARCHAR(7) NOT NULL,
@@ -46,9 +45,9 @@ CREATE TABLE IF NOT EXISTS `forevertools`.`locaties` (
 ENGINE = InnoDB;
 
 -- -----------------------------------------------------
--- Table `forevertools`.`medewerker`
+-- Table `site1db`.`medewerker`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `forevertools`.`medewerker` (
+CREATE TABLE IF NOT EXISTS `site1db`.`medewerker` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `admin` TINYINT NOT NULL,
   `voornaam` VARCHAR(50) NOT NULL,
@@ -57,9 +56,9 @@ CREATE TABLE IF NOT EXISTS `forevertools`.`medewerker` (
 ENGINE = InnoDB;
 
 -- -----------------------------------------------------
--- Table `forevertools`.`bestelling`
+-- Table `site1db`.`bestelling`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `forevertools`.`bestelling` (
+CREATE TABLE IF NOT EXISTS `site1db`.`bestelling` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `totale_kosten` DECIMAL NOT NULL,
   `klant_id` INT NOT NULL,
@@ -69,28 +68,28 @@ CREATE TABLE IF NOT EXISTS `forevertools`.`bestelling` (
   INDEX `fk_bestelling_klant1_idx` (`klant_id` ASC) VISIBLE,
   CONSTRAINT `fk_bestelling_medewerker1`
     FOREIGN KEY (`medewerker_id`)
-    REFERENCES `forevertools`.`medewerker` (`id`)
+    REFERENCES `site1db`.`medewerker` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_bestelling_klant1`
     FOREIGN KEY (`klant_id`)
-    REFERENCES `forevertools`.`klant` (`id`)
+    REFERENCES `site1db`.`klant` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 -- -----------------------------------------------------
--- Table `forevertools`.`voorraad`
+-- Table `site1db`.`voorraad`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `forevertools`.`voorraad` (
+CREATE TABLE IF NOT EXISTS `site1db`.`voorraad` (
   `id` INT NOT NULL AUTO_INCREMENT,
   PRIMARY KEY (`id`))
 ENGINE = InnoDB;
 
 -- -----------------------------------------------------
--- Table `forevertools`.`product_has_locaties`
+-- Table `site1db`.`product_has_locaties`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `forevertools`.`product_has_locaties` (
+CREATE TABLE IF NOT EXISTS `site1db`.`product_has_locaties` (
   `product_id` INT NOT NULL,
   `product_bestelling_id` INT NOT NULL,
   `locaties_id` INT NOT NULL,
@@ -102,25 +101,25 @@ CREATE TABLE IF NOT EXISTS `forevertools`.`product_has_locaties` (
   INDEX `fk_product_has_locaties_product1_idx` (`product_id` ASC, `product_bestelling_id` ASC) VISIBLE,
   CONSTRAINT `fk_product_has_locaties_product1`
     FOREIGN KEY (`product_id`, `product_bestelling_id`)
-    REFERENCES `forevertools`.`product` (`id`, `bestelling_id`)
+    REFERENCES `site1db`.`product` (`id`, `bestelling_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_product_has_locaties_locaties1`
     FOREIGN KEY (`locaties_id`)
-    REFERENCES `forevertools`.`locaties` (`id`)
+    REFERENCES `site1db`.`locaties` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_product_has_locaties_voorraad1`
     FOREIGN KEY (`locaties_voorraad_id`)
-    REFERENCES `forevertools`.`voorraad` (`id`)
+    REFERENCES `site1db`.`voorraad` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 -- -----------------------------------------------------
--- Table `forevertools`.`locaties_has_medewerker`
+-- Table `site1db`.`locaties_has_medewerker`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `forevertools`.`locaties_has_medewerker` (
+CREATE TABLE IF NOT EXISTS `site1db`.`locaties_has_medewerker` (
   `locaties_id` INT NOT NULL,
   `medewerker_id` INT NOT NULL,
   PRIMARY KEY (`locaties_id`, `medewerker_id`),
@@ -128,20 +127,20 @@ CREATE TABLE IF NOT EXISTS `forevertools`.`locaties_has_medewerker` (
   INDEX `fk_locaties_has_medewerker_locaties1_idx` (`locaties_id` ASC) VISIBLE,
   CONSTRAINT `fk_locaties_has_medewerker_locaties1`
     FOREIGN KEY (`locaties_id`)
-    REFERENCES `forevertools`.`locaties` (`id`)
+    REFERENCES `site1db`.`locaties` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_locaties_has_medewerker_medewerker1`
     FOREIGN KEY (`medewerker_id`)
-    REFERENCES `forevertools`.`medewerker` (`id`)
+    REFERENCES `site1db`.`medewerker` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 -- -----------------------------------------------------
--- Table `forevertools`.`factuur`
+-- Table `site1db`.`factuur`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `forevertools`.`factuur` (
+CREATE TABLE IF NOT EXISTS `site1db`.`factuur` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `prijs` DECIMAL NOT NULL,
   `klantvoornaam` VARCHAR(50) NOT NULL,
@@ -151,9 +150,9 @@ CREATE TABLE IF NOT EXISTS `forevertools`.`factuur` (
 ENGINE = InnoDB;
 
 -- -----------------------------------------------------
--- Table `forevertools`.`bestelling_has_factuur`
+-- Table `site1db`.`bestelling_has_factuur`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `forevertools`.`bestelling_has_factuur` (
+CREATE TABLE IF NOT EXISTS `site1db`.`bestelling_has_factuur` (
   `bestelling_id` INT NOT NULL,
   `bestelling_klant_id` INT NOT NULL,
   `bestelling_medewerker_id` INT NOT NULL,
@@ -163,20 +162,20 @@ CREATE TABLE IF NOT EXISTS `forevertools`.`bestelling_has_factuur` (
   INDEX `fk_bestelling_has_factuur_bestelling1_idx` (`bestelling_id` ASC, `bestelling_klant_id` ASC, `bestelling_medewerker_id` ASC) VISIBLE,
   CONSTRAINT `fk_bestelling_has_factuur_bestelling1`
     FOREIGN KEY (`bestelling_id`, `bestelling_klant_id`, `bestelling_medewerker_id`)
-    REFERENCES `forevertools`.`bestelling` (`id`, `klant_id`, `medewerker_id`)
+    REFERENCES `site1db`.`bestelling` (`id`, `klant_id`, `medewerker_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_bestelling_has_factuur_factuur1`
     FOREIGN KEY (`factuur_id`)
-    REFERENCES `forevertools`.`factuur` (`id`)
+    REFERENCES `site1db`.`factuur` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 -- -----------------------------------------------------
--- Table `forevertools`.`factuur_has_medewerker`
+-- Table `site1db`.`factuur_has_medewerker`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `forevertools`.`factuur_has_medewerker` (
+CREATE TABLE IF NOT EXISTS `site1db`.`factuur_has_medewerker` (
   `factuur_id` INT NOT NULL,
   `medewerker_id` INT NOT NULL,
   PRIMARY KEY (`factuur_id`, `medewerker_id`),
@@ -184,20 +183,20 @@ CREATE TABLE IF NOT EXISTS `forevertools`.`factuur_has_medewerker` (
   INDEX `fk_factuur_has_medewerker_factuur1_idx` (`factuur_id` ASC) VISIBLE,
   CONSTRAINT `fk_factuur_has_medewerker_factuur1`
     FOREIGN KEY (`factuur_id`)
-    REFERENCES `forevertools`.`factuur` (`id`)
+    REFERENCES `site1db`.`factuur` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_factuur_has_medewerker_medewerker1`
     FOREIGN KEY (`medewerker_id`)
-    REFERENCES `forevertools`.`medewerker` (`id`)
+    REFERENCES `site1db`.`medewerker` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 -- -----------------------------------------------------
--- Table `forevertools`.`voorraad_has_product`
+-- Table `site1db`.`voorraad_has_product`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `forevertools`.`voorraad_has_product` (
+CREATE TABLE IF NOT EXISTS `site1db`.`voorraad_has_product` (
   `voorraad_id` INT NOT NULL,
   `product_id` INT NOT NULL,
   `product_bestelling_id` INT NOT NULL,
@@ -206,20 +205,20 @@ CREATE TABLE IF NOT EXISTS `forevertools`.`voorraad_has_product` (
   INDEX `fk_voorraad_has_product_voorraad1_idx` (`voorraad_id` ASC) VISIBLE,
   CONSTRAINT `fk_voorraad_has_product_voorraad1`
     FOREIGN KEY (`voorraad_id`)
-    REFERENCES `forevertools`.`voorraad` (`id`)
+    REFERENCES `site1db`.`voorraad` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_voorraad_has_product_product1`
     FOREIGN KEY (`product_id`, `product_bestelling_id`)
-    REFERENCES `forevertools`.`product` (`id`, `bestelling_id`)
+    REFERENCES `site1db`.`product` (`id`, `bestelling_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 -- -----------------------------------------------------
--- Table `forevertools`.`product_has_bestelling`
+-- Table `site1db`.`product_has_bestelling`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `forevertools`.`product_has_bestelling` (
+CREATE TABLE IF NOT EXISTS `site1db`.`product_has_bestelling` (
   `product_id` INT NOT NULL,
   `product_bestelling_id` INT NOT NULL,
   `bestelling_id` INT NOT NULL,
@@ -230,26 +229,26 @@ CREATE TABLE IF NOT EXISTS `forevertools`.`product_has_bestelling` (
   INDEX `fk_product_has_bestelling_product1_idx` (`product_id` ASC, `product_bestelling_id` ASC) VISIBLE,
   CONSTRAINT `fk_product_has_bestelling_product1`
     FOREIGN KEY (`product_id`, `product_bestelling_id`)
-    REFERENCES `forevertools`.`product` (`id`, `bestelling_id`)
+    REFERENCES `site1db`.`product` (`id`, `bestelling_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_product_has_bestelling_bestelling1`
     FOREIGN KEY (`bestelling_id`, `bestelling_klant_id`, `bestelling_medewerker_id`)
-    REFERENCES `forevertools`.`bestelling` (`id`, `klant_id`, `medewerker_id`)
+    REFERENCES `site1db`.`bestelling` (`id`, `klant_id`, `medewerker_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 -- -----------------------------------------------------
--- Insert admin user if not exists
+-- Insert admin user if not exists and set password
 -- -----------------------------------------------------
-INSERT INTO `forevertools`.`klant` (`voornaam`, `achternaam`, `admin`, `wachtwoord`) 
-VALUES ('Jordy', 'Meijer', 1, '')
-ON DUPLICATE KEY UPDATE `admin` = 1;
+INSERT INTO `site1db`.`klant` (`voornaam`, `achternaam`, `admin`, `wachtwoord`) 
+VALUES ('Jordy', 'Meijer', 1, 'mypassword123')
+ON DUPLICATE KEY UPDATE `admin` = 1, `wachtwoord` = 'mypassword123';
 
--- Update existing user to admin if they exist
-UPDATE `forevertools`.`klant` 
-SET `admin` = 1  
+-- Update existing user to admin and set password if they exist
+UPDATE `site1db`.`klant` 
+SET `admin` = 1, `wachtwoord` = 'mypassword123'
 WHERE `voornaam` = 'Jordy' AND `achternaam` = 'Meijer';
 
 SET SQL_MODE=@OLD_SQL_MODE;
