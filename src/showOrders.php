@@ -70,13 +70,24 @@ function fetch_order_items($pdo, $order_id) {
     <link rel="stylesheet" href="background/siteStyling.css?v=<?php echo time(); ?>">
 </head>
 <body>
-    <div class="container">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h2>Customer Orders (staff)</h2>
-            <div>
-                <a href="dashboard.php">Terug naar dashboard</a>
+    <header class="nav-header">
+        <div class="nav-content">
+            <a href="dashboard.php" class="nav-title">Forever Tools</a>
+            <div class="nav-links">
+                <?php if (!empty($_SESSION['admin'])): ?>
+                    <a href="showAccounts.php">Accounts beheren</a>
+                    <a href="createFactory.php">Fabrieken beheren</a>
+                <?php endif; ?>
+                <?php if (!empty($_SESSION['admin']) || !empty($_SESSION['medewerker'])): ?>
+                    <a href="showOrders.php">Orders beheren</a>
+                <?php endif; ?>
+                <a href="logout.php">Uitloggen</a>
             </div>
         </div>
+    </header>
+    
+    <div class="container">
+        <h2>Orders beheren</h2>
 
         <?php if (!empty($message)): ?>
             <div class="message success"><?php echo htmlspecialchars($message); ?></div>
@@ -144,5 +155,7 @@ function fetch_order_items($pdo, $order_id) {
             </tbody>
         </table>
     </div>
+
+     <p><a href="dashboard.php">Back to dashboard</a></p>
 </body>
 </html>

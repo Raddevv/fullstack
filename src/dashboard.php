@@ -421,16 +421,24 @@ try {
     <link rel="stylesheet" href="background/siteStyling.css">
 </head>
 <body>
-    <div class="container">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h1>Product Management Dashboard</h1>
-            <div>
-                <?php if (!empty($_SESSION['voornaam'])): ?>
-                    Logged in as: <?php echo htmlspecialchars($_SESSION['voornaam']); ?>
-                    <a href="logout.php" style="margin-left:10px;">Logout</a>
+    <header class="nav-header">
+        <div class="nav-content">
+            <a href="dashboard.php" class="nav-title">Forever Tools</a>
+            <div class="nav-links">
+                <?php if (!empty($_SESSION['admin'])): ?>
+                    <a href="showAccounts.php">Accounts beheren</a>
+                    <a href="createFactory.php">Fabrieken beheren</a>
                 <?php endif; ?>
+                <?php if (!empty($_SESSION['admin']) || !empty($_SESSION['medewerker'])): ?>
+                    <a href="showOrders.php">Orders beheren</a>
+                <?php endif; ?>
+                <a href="logout.php">Uitloggen</a>
             </div>
         </div>
+    </header>
+    
+    <div class="container">
+            <h1>Product Management Dashboard</h1>
 
         <?php if (isset($_SESSION['message'])): ?>
             <div class="message success">
@@ -450,7 +458,6 @@ try {
             </div>
         <?php endif; ?>
 
-        <!-- low-stock warnings -->
         <?php if (!empty($low_stock_items)): ?>
             <div class="message error">
                 <strong>Low stock warning:</strong>
@@ -576,50 +583,68 @@ try {
                             <td><?php echo htmlspecialchars($product['stock'] ?? 0); ?></td>
                             <td>
                                 <?php if (!empty($_SESSION['admin']) || !empty($_SESSION['medewerker'])): ?>
-                                    <form method="post" action="" class="compact-row">
-                                        <input type="hidden" name="action" value="delete_product">
-                                        <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
-                                        <button class="small-button" type="submit" onclick="return confirm('Are you sure you want to delete this product?')">Delete</button>
-                                    </form>
+                                    <div class="action-buttons-container">
+                                        <div class="action-group stock-actions">
+                                            <!-- set absolute stock -->
+                                            <form method="post" action="" class="compact-row">
+                                                <input type="hidden" name="action" value="set_stock">
+                                                <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
+                                                <div class="input-button-group">
+                                                    <input class="small-input" type="number" name="stock" value="<?php echo htmlspecialchars($product['stock'] ?? 0); ?>">
+                                                    <button class="small-button" type="submit">Set</button>
+                                                </div>
+                                            </form>
 
-                                    <!-- set absolute stock -->
-                                    <form method="post" action="" class="compact-row">
-                                        <input type="hidden" name="action" value="set_stock">
-                                        <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
-                                        <input class="small-input" type="number" name="stock" value="<?php echo htmlspecialchars($product['stock'] ?? 0); ?>">
-                                        <button class="small-button" type="submit">Set</button>
-                                    </form>
+                                            <!-- adjust stock by delta -->
+                                            <form method="post" action="" class="compact-row">
+                                                <input type="hidden" name="action" value="adjust_stock">
+                                                <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
+                                                <div class="input-button-group">
+                                                    <input class="small-input" type="number" name="delta" value="0">
+                                                    <button class="small-button" type="submit">Adjust</button>
+                                                </div>
+                                            </form>
+                                        </div>
 
-                                    <!-- adjust stock by delta -->
-                                    <form method="post" action="" class="compact-row">
-                                        <input type="hidden" name="action" value="adjust_stock">
-                                        <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
-                                        <input class="small-input" type="number" name="delta" value="0">
-                                        <button class="small-button" type="submit">Adjust</button>
-                                    </form>
+                                        <div class="action-group order-actions">
+                                            <!-- place customer order (decrease stock) -->
+                                            <form method="post" action="" class="compact-row">
+                                                <input type="hidden" name="action" value="place_order">
+                                                <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
+                                                <div class="input-button-group">
+                                                    <input class="small-input" type="number" name="amount" value="1" min="1">
+                                                    <button class="small-button" type="submit">Order</button>
+                                                </div>
+                                            </form>
 
-                                    <!-- place customer order (decrease stock) -->
-                                    <form method="post" action="" class="compact-row">
-                                        <input type="hidden" name="action" value="place_order">
-                                        <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
-                                        <input class="small-input" type="number" name="amount" value="1" min="1">
-                                        <button class="small-button" type="submit">Order</button>
-                                    </form>
+                                            <!-- quick create purchase order -->
+                                            <form method="post" action="" class="compact-row">
+                                                <input type="hidden" name="action" value="create_po">
+                                                <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
+                                                <div class="input-button-group">
+                                                    <input class="small-input" type="number" name="po_amount" value="10" min="1">
+                                                    <button class="small-button" type="submit">Purchase Order</button>
+                                                </div>
+                                            </form>
+                                        </div>
 
-                                    <!-- quick create purchase order -->
-                                    <form method="post" action="" class="compact-row">
-                                        <input type="hidden" name="action" value="create_po">
-                                        <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
-                                        <input class="small-input" type="number" name="po_amount" value="10" min="1">
-                                        <button class="small-button" type="submit">Purchase Order</button>
-                                    </form>
+                                        <div class="action-group delete-action">
+                                            <form method="post" action="" class="compact-row">
+                                                <input type="hidden" name="action" value="delete_product">
+                                                <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
+                                                <button class="small-button delete-button" type="submit" onclick="return confirm('Are you sure you want to delete this product?')">Delete</button>
+                                            </form>
+                                        </div>
+                                    </div>
                                 <?php else: ?>
                                     <!-- regular users: quick order button only (multi-order form below available) -->
                                     <form method="post" action="" class="compact-row">
                                         <input type="hidden" name="action" value="place_order">
                                         <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
-                                        <input class="small-input" type="number" name="amount" value="1" min="1">
-                                        <button class="small-button" type="submit">Order</button>
+                                        <div class="input-button-group">
+                                            <input class="small-input" type="number" name="amount" value="1" min="1">
+                                            <button class="small-button" type="submit">Order</button>
+                                        </div>
                                     </form>
                                 <?php endif; ?>
                             </td>

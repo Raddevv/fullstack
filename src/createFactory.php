@@ -24,7 +24,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } elseif ($_POST['action'] === 'delete_factory') {
                 $id = (int)$_POST['factory_id'];
-                // Optionally check for dependent products before delete
                 $p = $pdo->prepare("SELECT COUNT(*) as cnt FROM product WHERE fabriekherkomst = (SELECT name FROM factories WHERE id = ?)");
                 $p->execute([$id]);
                 $c = $p->fetch();
@@ -42,13 +41,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// fetch factories
+// fetch all created factories
 try {
     $stmt = $pdo->query("SELECT * FROM factories ORDER BY id DESC");
     $factories = $stmt->fetchAll();
 } catch (PDOException $e) {
     $factories = [];
-    $error = 'Could not load factories';
+    $error = '87j';
 }
 ?>
 <!DOCTYPE html>
@@ -59,8 +58,24 @@ try {
     <link rel="stylesheet" href="background/siteStyling.css?v=<?php echo time(); ?>">
 </head>
 <body>
+    <header class="nav-header">
+        <div class="nav-content">
+            <a href="dashboard.php" class="nav-title">Forever Tools</a>
+            <div class="nav-links">
+                <?php if (!empty($_SESSION['admin'])): ?>
+                    <a href="showAccounts.php">Accounts beheren</a>
+                    <a href="createFactory.php">Fabrieken beheren</a>
+                <?php endif; ?>
+                <?php if (!empty($_SESSION['admin']) || !empty($_SESSION['medewerker'])): ?>
+                    <a href="showOrders.php">Orders beheren</a>
+                <?php endif; ?>
+                <a href="logout.php">Uitloggen</a>
+            </div>
+        </div>
+    </header>
+    
     <div class="container">
-        <h2>Factories</h2>
+        <h2>Fabrieken beheren</h2>
         <?php if (!empty($error)): ?>
             <div class="message error"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
@@ -76,8 +91,8 @@ try {
                 <input class="input" type="text" id="name" name="name" required>
             </div>
             <div>
-                <label for="country">Country (optional)</label>
-                <input class="input" type="text" id="country" name="country">
+                <label for="location">Location (optional)</label>
+                <input class="input" type="text" id="location" name="location">
             </div>
             <button type="submit">Create</button>
         </form>

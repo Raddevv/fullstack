@@ -61,4 +61,10 @@ voorraad zit
 # - je kan als beiden klant en admin product orders zien
 # - je kan meerdere van een product in een order zetten als klant
 # - je kan customer orders zien
-x - je kan nog geen fabriek maken
+# - je kan nu een fabriek maken
+# - je kan orders verwijderen, versturen en cancellen als admin/medewerker
+# - je kan klanten omveranderen naar medewerker als admin
+
+--verbeteringen
+-- topbar gemaakt voor knoppen, was eerder compleet vergeten
+-- 
