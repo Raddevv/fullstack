@@ -1,4 +1,10 @@
 <?php
+/*
+ * Loginpagina en eenvoudige migratie-runner.
+ * - Voert bij het laden eventuele SQL-migraties uit die in
+ *   `background/migrations/` aanwezig zijn
+ * - Handelt authenticatie (session) en redirect naar dashboard
+ */
 session_start();
 
 // if user is already logged in, redirect to dashboard
@@ -10,7 +16,7 @@ if (isset($_SESSION['user_id'])) {
 // 4everToolsDB require
 require_once '4everToolsDB.php';
 
-// Simple migration runner: applies .sql files from src/background/migrations
+// Simple migration runner: applies .sql files from background/migrations
 function run_migrations(PDO $pdo)
 {
     $migrationsDir = __DIR__ . DIRECTORY_SEPARATOR . 'background' . DIRECTORY_SEPARATOR . 'migrations';
@@ -36,8 +42,10 @@ function run_migrations(PDO $pdo)
         if (!empty($applied[$name])) continue;
         $sql = file_get_contents($file);
         if ($sql === false) continue;
+
         // split statements on semicolon followed by newline
         $parts = preg_split('/;\s*\n/', $sql);
+
         try {
             $pdo->beginTransaction();
             foreach ($parts as $part) {
@@ -45,12 +53,13 @@ function run_migrations(PDO $pdo)
                 if ($s === '') continue;
                 $pdo->exec($s);
             }
-            $ins = $pdo->prepare("INSERT INTO migrations (name) VALUES (?)");
-            $ins->execute([$name]);
+    if (!empty($name)) {
+        $ins = $pdo->prepare("INSERT INTO migrations (name) VALUES (?)");
+        $ins->execute([$name]);
+    }
             $pdo->commit();
         } catch (PDOException $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
-            // surface error to session so it's visible on load
             $_SESSION['error'] = 'Migration failed (' . $name . '): ' . $e->getMessage();
             break;
         }
@@ -105,6 +114,7 @@ try {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         received_at TIMESTAMP NULL
     ) ENGINE=InnoDB");
+
     // factories table
     $pdo->exec("CREATE TABLE IF NOT EXISTS factories (
         id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -112,8 +122,8 @@ try {
         country VARCHAR(255) DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-} catch (PDOException $e) { // <-- exception 
-    // if column exists, silence error
+} catch (PDOException $e) {
+    // Silence expected column-exists errors
 }
 
 // form login handler
@@ -123,30 +133,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $wachtwoord = $_POST['wachtwoord'];
     
     try {
-        // credential check
         $stmt = $pdo->prepare("SELECT id, voornaam, achternaam, wachtwoord, admin FROM klant WHERE voornaam = ? AND achternaam = ?");
         $stmt->execute([$voornaam, $achternaam]);
         $user = $stmt->fetch();
 
-        // verify existence
         if ($user && password_verify($wachtwoord, $user['wachtwoord'])) {
-            // set session vars
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['voornaam'] = $user['voornaam'];
             $_SESSION['admin'] = $user['admin'];
             
-            // dashboard redirect
             header('Location: dashboard.php');
             exit();
         } else {
-            $error_message = "Invalid voornaam or achternaam";
+            $error_message = "Invalid voornaam of wachtwoord";
         }
     } catch (PDOException $e) {
         $error_message = "Login error: " . $e->getMessage();
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>

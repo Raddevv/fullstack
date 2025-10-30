@@ -1,4 +1,12 @@
 <?php
+/*
+ * Registratiepagina voor nieuwe klanten
+ * valideert wachtwoordlengte en wachtwoordbevestiging
+ * slaat gehashte wachtwoorden op in `klant` tabel
+ * 
+ * deze file slaat nieuwe accounts op in de database, valideert wachtwoorden
+ * en zorgt dat ingelogde gebruikers niet opnieuw kunnen registreren
+ */
 session_start();
 
 // if logged in, redirect
@@ -29,12 +37,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hashed_password = password_hash($wachtwoord, PASSWORD_DEFAULT);
             
             // insert hash password
+            // We vangen PDOExceptions zodat eventuele DB-fouten (bv. duplicate)
+            // niet de hele pagina laten crashen. PDO gooit PDOException en
+            // die vangen we hieronder op.
             $stmt = $pdo->prepare("INSERT INTO klant (voornaam, achternaam, wachtwoord, admin) VALUES (?, ?, ?, 0)");
             $stmt->execute([$voornaam, $achternaam, $hashed_password]);
             
             $success_message = "Account made, you can now login";
         }
     } catch (PDOException $e) {
+        // Toon geen raw DB-fout aan de gebruiker in productie; hier tonen
+        // we het direct voor ontwikkeldoeleinden. Voor productie zou je
+        // error_log($e->getMessage()) gebruiken en een vriendelijke tekst tonen.
         $error_message = "Registration error: " . $e->getMessage();
     }
 }

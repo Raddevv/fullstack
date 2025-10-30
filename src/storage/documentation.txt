@@ -1,3 +1,7 @@
+verschillende fabrieken selecteren
+- SELECT DISTINCT
+- 
+
 // ik doe dit voor mezelf als "dagelijkse stappen", maar ik laat het open zodat er meegekeken kan worden.
 //
 //
@@ -67,4 +71,3 @@ voorraad zit
 
 --verbeteringen
 -- topbar gemaakt voor knoppen, was eerder compleet vergeten
--- 

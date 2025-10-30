@@ -1,6 +1,6 @@
 <?php
 session_start();
-// Destroy session and redirect to login
+// Destroy session en redirect naar de login
 $_SESSION = [];
 if (ini_get("session.use_cookies")) {
     $params = session_get_cookie_params();

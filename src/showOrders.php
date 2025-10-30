@@ -1,8 +1,16 @@
 <?php
+/*
+ * Orders beheren voor medewerkers / admins
+ * 
+ * 
+ * in deze file laat ik een lijst van orders zien
+ * er zijn knoppen waarmee je de status van een order kan aanpassen, je ziet aankomende orders
+ * als admin kun jij dan orders verwijderen of versturen
+ */
 session_start();
 require_once '4everToolsDB.php';
 
-// Only admins and medewerkers can access this page
+// zorgen dat alleen admins en medewerkers in deze pagina kunnen
 if (empty($_SESSION['user_id']) || (empty($_SESSION['admin']) && empty($_SESSION['medewerker']))) {
     header('Location: index.php');
     exit();
@@ -13,10 +21,13 @@ $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
+        // Database operaties kunnen misgaan (bijv. constraint violation).
+        // Omdat PDO in exception mode staat, gooien deze calls een
+        // PDOException die we hieronder opvangen om gecontroleerd te reageren.
         try {
             if ($_POST['action'] === 'send_order') {
                 $order_id = (int)$_POST['order_id'];
-                $stmt = $pdo->prepare("UPDATE customer_order SET status = 'sent' WHERE id = ? AND status = 'placed'");
+                $stmt = $pdo->prepare("UPDATE customer_order SET status = 'sent' WHERE id = ? AND status = 'placed'"); /*order versturen*/
                 $stmt->execute([$order_id]);
                 if ($stmt->rowCount() > 0) {
                     $message = "Order #$order_id marked as sent.";
@@ -25,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } elseif ($_POST['action'] === 'delete_order') {
                 $order_id = (int)$_POST['order_id'];
-                $d = $pdo->prepare("DELETE FROM customer_order WHERE id = ?");
+                $d = $pdo->prepare("DELETE FROM customer_order WHERE id = ?"); /*order verwijderen*/
                 $d->execute([$order_id]);
                 if ($d->rowCount() > 0) {
                     $message = "Order #$order_id deleted.";
@@ -34,6 +45,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } catch (PDOException $e) {
+            // Hier vangen we de PDOException en zetten een eenvoudige
+            // foutmelding voor de gebruiker. Technische details kun je
+            // loggen met error_log($e->getMessage()) als je wilt.
             $error = 'Database error: ' . $e->getMessage();
         }
     }
@@ -44,19 +58,26 @@ try {
     $stmt = $pdo->query("SELECT co.*, k.voornaam, k.achternaam FROM customer_order co JOIN klant k ON k.id = co.user_id ORDER BY co.id DESC");
     $orders = $stmt->fetchAll();
 } catch (PDOException $e) {
+    // Fout bij ophalen orders: vangen zodat de pagina niet crasht.
+    // We tonen een gebruikersvriendelijke melding en vullen $orders leeg.
     $orders = [];
     $error = 'Could not load orders: ' . $e->getMessage();
 }
+/*^^^^^*/
+// order ophalen met klant info
 
-// helper to fetch items for an order
-function fetch_order_items($pdo, $order_id) {
+// helper om items in een order te vinden
+function fetch_order_items($pdo, $order_id) { // per item orders ophalen
     $items = [];
     try {
-        $s = $pdo->prepare("SELECT coi.*, p.type as product_type FROM customer_order_item coi JOIN product p ON p.id = coi.product_id WHERE coi.order_id = ?");
+        // Haal order items op; ook hier kan een DB-fout optreden (bijv.
+        // als de DB-verbinding wegvalt). Daarom try/catch zodat we
+        // een lege lijst teruggeven in geval van fouten ipv een crash.
+        $s = $pdo->prepare("SELECT coi.*, p.type as product_type FROM customer_order_item coi JOIN product p ON p.id = coi.product_id WHERE coi.order_id = ?"); // haalt alle producten in een order op uit
         $s->execute([$order_id]);
         $items = $s->fetchAll();
     } catch (PDOException $e) {
-        // ignore; caller will show empty list
+        // Optioneel: log error met error_log($e->getMessage());
     }
     return $items;
 }
@@ -97,7 +118,7 @@ function fetch_order_items($pdo, $order_id) {
             <div class="message error"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
 
-        <table class="product-table" style="width:100%; margin-top:15px;">
+        <table class="product-table" style="width:100%; margin-top:5px;">
             <thead>
                 <tr>
                     <th>ID</th>

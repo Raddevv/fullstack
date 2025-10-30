@@ -1,4 +1,9 @@
 <?php
+/*
+ * Admin UI voor het beheren van fabriek records (CRUD).
+ * - Alleen toegankelijk voor admins
+ * - Voegt factories toe met naam en land
+ */
 session_start();
 require_once '4everToolsDB.php';
 
@@ -11,16 +16,28 @@ if (empty($_SESSION['user_id']) || empty($_SESSION['admin'])) {
 // handle create/delete
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
+        // We vangen PDOExceptions hier zodat fouten tijdens create/delete
+        // niet de hele pagina laten crashen. PDO gooit PDOException
+        // bij databaseproblemen en we willen die netjes afhandelen.
         try {
             if ($_POST['action'] === 'create_factory') {
                 $name = trim($_POST['name']);
                 $country = trim($_POST['country']);
+                // Normalize empty country to a known value so duplicates are easier to detect
+                $country_norm = $country !== '' ? $country : 'onbekend';
                 if ($name === '') {
                     $error = 'Factory name required';
                 } else {
-                    $stmt = $pdo->prepare("INSERT INTO factories (name, country) VALUES (?, ?)");
-                    $stmt->execute([$name, $country ?: null]);
-                    $success = 'Factory created';
+                    $check = $pdo->prepare("SELECT COUNT(*) as cnt FROM factories WHERE LOWER(name) = LOWER(?) AND LOWER(COALESCE(country,'')) = LOWER(?)");
+                    $check->execute([$name, $country_norm]);
+                    $exists = $check->fetch();
+                    if ($exists && $exists['cnt'] > 0) {
+                        $error = 'Factory already exists with the same name and country.';
+                    } else {
+                        $stmt = $pdo->prepare("INSERT INTO factories (name, country) VALUES (?, ?)");
+                        $stmt->execute([$name, $country_norm]);
+                        $success = 'Factory created';
+                    }
                 }
             } elseif ($_POST['action'] === 'delete_factory') {
                 $id = (int)$_POST['factory_id'];
@@ -36,18 +53,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } catch (PDOException $e) {
+            // Log technisch detail (bijv. error_log) en geef gebruiker
+            // een simpele foutmelding terug.
             $error = 'Database error: ' . $e->getMessage();
         }
     }
 }
 
 // fetch all created factories
+// Use DISTINCT to ensure the overview doesn't accidentally surface duplicate rows.
 try {
-    $stmt = $pdo->query("SELECT * FROM factories ORDER BY id DESC");
+    $stmt = $pdo->query("SELECT DISTINCT id, name, country, created_at FROM factories ORDER BY id DESC");
     $factories = $stmt->fetchAll();
 } catch (PDOException $e) {
+    // Fout bij ophalen van factories: voorkom crash en toon nette melding
     $factories = [];
-    $error = '87j';
+    $error = 'Error fetching factories: ' . $e->getMessage();
 }
 ?>
 <!DOCTYPE html>
@@ -91,8 +112,8 @@ try {
                 <input class="input" type="text" id="name" name="name" required>
             </div>
             <div>
-                <label for="location">Location (optional)</label>
-                <input class="input" type="text" id="location" name="location">
+                <label for="country">Country(optional)</label>
+                <input class="input" type="text" id="country" name="country">
             </div>
             <button type="submit">Create</button>
         </form>

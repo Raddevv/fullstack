@@ -1,32 +1,50 @@
 <?php
+/*
+ * Admin interface om gebruikers en hun rollen te beheren.
+ *
+ * de file laat alle accounts zien in een tabel met hun rollen
+ * alleen admins kunnen hier iets doen en überhaupt komen
+ */
 session_start();
 require_once '4everToolsDB.php';
 
+// kijken of de user admin is ingelogd, als geen admin dan terug naar index
 if (empty($_SESSION['user_id']) || empty($_SESSION['admin'])) {
     header('Location: index.php');
     exit();
 }
 
-// handle role toggle
+// laat alle gebruikers zien en handel rol wissel acties af
+// dit stuk verandert medewerker status
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action']) && $_POST['action'] === 'toggle_medewerker') {
         $uid = (int)$_POST['user_id'];
         $new = isset($_POST['set']) && $_POST['set'] == '1' ? 1 : 0;
+        // We gebruiken try/catch omdat database-operaties fouten kunnen geven.
+        // PDO is ingesteld op ERRMODE_EXCEPTION, dus bij een fout wordt
+        // er een PDOException gegooid. Hier vangen we die op zodat we de
+        // gebruiker een nette boodschap kunnen geven en niet de raw
+        // database-fout op het scherm tonen.
         try {
             $stmt = $pdo->prepare("UPDATE klant SET medewerker = ? WHERE id = ?");
             $stmt->execute([$new, $uid]);
             $message = 'User updated.';
         } catch (PDOException $e) {
+            // technische fout loggen (hier eenvoudig via session); in
+            // productie zou je deze fout naar een logfile sturen.
             $error = 'Error updating: ' . $e->getMessage();
         }
     }
 }
 
-// fetch users
+// fetch gebruikers
 try {
     $stmt = $pdo->query("SELECT id, voornaam, achternaam, admin, medewerker FROM klant ORDER BY id DESC");
     $users = $stmt->fetchAll();
 } catch (PDOException $e) {
+    // Als het laden van gebruikers faalt, vangen we de PDOException.
+    // Hierdoor blijft de pagina werken (we tonen een foutbericht) en
+    // kunnen we beslissen wat we loggen of laten zien aan de admin.
     $users = [];
     $error = 'Could not load users';
 }
@@ -70,7 +88,7 @@ try {
                     <td><?php echo $u['admin'] ? 'Yes' : '-'; ?></td>
                     <td><?php echo $u['medewerker'] ? 'Yes' : '-'; ?></td>
                     <td>
-                        <?php if (!$u['admin']): // don't allow changing admin status here ?>
+                        <?php if (!$u['admin']): // laat geen admin status verandering toe ?>
                         <form method="post" style="display:inline;">
                             <input type="hidden" name="action" value="toggle_medewerker">
                             <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
