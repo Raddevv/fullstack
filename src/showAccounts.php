@@ -62,24 +62,24 @@ try {
             <a href="dashboard.php" class="nav-title">Forever Tools</a>
             <div class="nav-links">
                 <?php if (!empty($_SESSION['admin'])): ?>
-                    <a href="showAccounts.php">Accounts beheren</a>
-                    <a href="createFactory.php">Fabrieken beheren</a>
+                    <a href="showAccounts.php">Manage Accounts</a>
+                    <a href="createFactory.php">Manage Locations</a>
                 <?php endif; ?>
                 <?php if (!empty($_SESSION['admin']) || !empty($_SESSION['medewerker'])): ?>
-                    <a href="showOrders.php">Orders beheren</a>
+                    <a href="showOrders.php">Manage Orders</a>
                 <?php endif; ?>
-                <a href="logout.php">Uitloggen</a>
+                <a href="logout.php">Log Out</a>
             </div>
         </div>
     </header>
     
     <div class="container">
-        <h2>Accounts beheren</h2>
+        <h2>Manage Accounts</h2>
         <?php if (!empty($error)): ?><div class="message error"><?php echo htmlspecialchars($error); ?></div><?php endif; ?>
         <?php if (!empty($message)): ?><div class="message success"><?php echo htmlspecialchars($message); ?></div><?php endif; ?>
 
         <table class="product-table">
-            <thead><tr><th>ID</th><th>Name</th><th>Admin</th><th>Medewerker</th><th>Actions</th></tr></thead>
+            <thead><tr><th>ID</th><th>Name</th><th>Admin</th><th>Employee</th><th>Actions</th></tr></thead>
             <tbody>
                 <?php foreach ($users as $u): ?>
                 <tr>
@@ -94,10 +94,10 @@ try {
                             <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
                             <?php if ($u['medewerker']): ?>
                                 <input type="hidden" name="set" value="0">
-                                <button class="small-button" type="submit">Verwijder als medewerker</button>
+                                <button class="small-button" type="submit">Remove as Employee</button>
                             <?php else: ?>
                                 <input type="hidden" name="set" value="1">
-                                <button class="small-button" type="submit">Maak medewerker</button>
+                                <button class="small-button" type="submit">Turn Employee</button>
                             <?php endif; ?>
                         </form>
                         <?php endif; ?>

@@ -172,17 +172,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form method="post" action="">
             <div class="form-group">
-                <label for="voornaam">Voornaam:</label>
+                <label for="voornaam">First Name:</label>
                 <input type="text" id="voornaam" name="voornaam" required>
             </div>
             
             <div class="form-group">
-                <label for="achternaam">Achternaam:</label>
+                <label for="achternaam">Last Name:</label>
                 <input type="text" id="achternaam" name="achternaam" required>
             </div>
 
             <div class="form-group">
-                <label for="wachtwoord">Wachtwoord:</label>
+                <label for="wachtwoord">Password:</label>
                 <input type="password" id="wachtwoord" name="wachtwoord" required>
             </div>
             

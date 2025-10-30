@@ -279,6 +279,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 break;
 
+            case 'update_product':
+                if (empty($_SESSION['admin']) && empty($_SESSION['medewerker'])) {
+                    $_SESSION['error'] = "Permission denied";
+                    break;
+                }
+                $product_id = (int)$_POST['product_id'];
+                $type = trim($_POST['type']);
+                $prijs = (float)$_POST['prijs'];
+                $waardeinkoop = (float)$_POST['waardeinkoop'];
+                $waardeverkoop = (float)$_POST['waardeverkoop'];
+                $factory_id = (int)$_POST['factory_id'];
+                
+                try {
+                    // Get factory name if factory_id is provided
+                    $fabriekherkomst = '';
+                    if ($factory_id > 0) {
+                        $fstmt = $pdo->prepare("SELECT name FROM factories WHERE id = ?");
+                        $fstmt->execute([$factory_id]);
+                        $frow = $fstmt->fetch();
+                        $fabriekherkomst = $frow ? $frow['name'] : '';
+                    }
+
+                    // Update product with all fields
+                    $stmt = $pdo->prepare("
+                        UPDATE product 
+                        SET type = ?, 
+                            fabriekherkomst = ?, 
+                            prijs = ?, 
+                            waardeinkoop = ?, 
+                            waardeverkoop = ? 
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([$type, $fabriekherkomst, $prijs, $waardeinkoop, $waardeverkoop, $product_id]);
+                    $_SESSION['message'] = "Product updated successfully.";
+                } catch (PDOException $e) {
+                    $_SESSION['error'] = "Error updating product: " . $e->getMessage();
+                }
+                break;
+
             case 'place_order':
                 // Single-product customer order: allow all users
                 $product_id = (int)$_POST['product_id'];
@@ -368,12 +407,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Get selected factory filter
+$selected_factory = isset($_GET['factory']) ? (int)$_GET['factory'] : 0;
+
 // products
 // Ophalen van producten kan mislukken (DB offline, query fout). Omdat
 // PDO exceptions gooit (ERRMODE_EXCEPTION) gebruiken we try/catch om
 // die fouten te vangen en de pagina gecontroleerd te laten reageren.
 try {
-    $stmt = $pdo->query("SELECT * FROM product ORDER BY id DESC");
+    if ($selected_factory > 0) {
+        $stmt = $pdo->prepare("
+            SELECT DISTINCT p.* 
+            FROM product p 
+            JOIN factories f ON p.fabriekherkomst = f.name 
+            WHERE f.id = ?
+            ORDER BY p.id DESC
+        ");
+        $stmt->execute([$selected_factory]);
+    } else {
+        $stmt = $pdo->query("SELECT * FROM product ORDER BY id DESC");
+    }
     $products = $stmt->fetchAll();
 } catch (PDOException $e) {
     $_SESSION['error'] = "Error fetching products: " . $e->getMessage();
@@ -477,11 +530,27 @@ try {
     
     <div class="container">
             <h1>Product Management Dashboard</h1>
+            
+            <!-- Factory filter -->
+            <div class="filter-section" style="margin-bottom:20px;">
+                <form method="get" action="" class="factory-filter">
+                    <label for="factory">Filter by Factory:</label>
+                    <select name="factory" id="factory" class="input" onchange="this.form.submit()">
+                        <option value="0">All Factories</option>
+                        <?php foreach ($factories as $f): ?>
+                            <option value="<?php echo $f['id']; ?>" <?php echo $selected_factory == $f['id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($f['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </form>
+            </div>
+
             <!-- Totale voorraadwaarde: kort inzicht voor directie -->
             <div style="margin-bottom:12px;">
                 <strong>Totale voorraadwaarde:</strong>
                 <span style="color:#dcdcdc;">€<?php echo number_format($total_inventory_value, 2, ',', '.'); ?></span>
-                <small style="color:#999; display:block;">(op basis van inkoopwaarde per product)</small>
+            <small style="color:#999; display:block;">(Calculated on basis of stock value & stock amount)</small>
             </div>
 
         <?php if (isset($_SESSION['message'])): ?>
@@ -572,10 +641,10 @@ try {
                         </select>
                         <div style="font-size:0.9rem;color:#888;margin-top:6px;">Or enter custom factory name below</div>
                         <input class="input" type="text" id="fabriekherkomst" name="fabriekherkomst" placeholder="Custom factory name (optional)">
-                        <p><a href="createFactory.php">Manage factories</a></p>
+                        <p><a href="createFactory.php">Manage Locations</a></p>
                     <?php else: ?>
                         <input class="input" type="text" id="fabriekherkomst" name="fabriekherkomst" required>
-                        <p><a href="createFactory.php">Create factories</a></p>
+                        <p><a href="createFactory.php">Create Locations</a></p>
                     <?php endif; ?>
                 </div>
 
@@ -607,7 +676,7 @@ try {
                     <tr>
                         <th>ID</th>
                         <th>Type</th>
-                        <th>Factory Origin</th>
+                        <th>Location</th>
                         <th>Price</th>
                         <th>Purchase Value</th>
                         <th>Sale Value</th>
@@ -648,6 +717,52 @@ try {
                                                     <button class="small-button" type="submit">Adjust</button>
                                                 </div>
                                             </form>
+
+                                            <!-- edit product details -->
+                                            <button onclick="showEditForm(<?php echo $product['id']; ?>)" class="small-button">Edit Details</button>
+                                            <div id="edit-form-<?php echo $product['id']; ?>" style="display:none;" class="edit-product-form">
+                                                <form method="post" action="" class="edit-details-form">
+                                                    <input type="hidden" name="action" value="update_product">
+                                                    <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
+                                                    
+                                                    <div class="form-group">
+                                                        <label>Name:</label>
+                                                        <input type="text" name="type" value="<?php echo htmlspecialchars($product['type']); ?>" required class="input">
+                                                    </div>
+                                                    
+                                                    <div class="form-group">
+                                                        <label>Factory:</label>
+                                                        <select name="factory_id" class="input">
+                                                            <option value="0">-- Select Factory --</option>
+                                                            <?php foreach ($factories as $f): ?>
+                                                                <option value="<?php echo $f['id']; ?>" <?php echo $f['name'] === $product['fabriekherkomst'] ? 'selected' : ''; ?>>
+                                                                    <?php echo htmlspecialchars($f['name']); ?>
+                                                                </option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </div>
+                                                    
+                                                    <div class="form-group">
+                                                        <label>Price:</label>
+                                                        <input type="number" name="prijs" value="<?php echo htmlspecialchars($product['prijs']); ?>" step="0.01" required class="input">
+                                                    </div>
+                                                    
+                                                    <div class="form-group">
+                                                        <label>Purchase Value:</label>
+                                                        <input type="number" name="waardeinkoop" value="<?php echo htmlspecialchars($product['waardeinkoop']); ?>" step="0.01" required class="input">
+                                                    </div>
+                                                    
+                                                    <div class="form-group">
+                                                        <label>Sale Value:</label>
+                                                        <input type="number" name="waardeverkoop" value="<?php echo htmlspecialchars($product['waardeverkoop']); ?>" step="0.01" required class="input">
+                                                    </div>
+                                                    
+                                                    <div class="button-group">
+                                                        <button type="submit" class="small-button">Save Changes</button>
+                                                        <button type="button" onclick="hideEditForm(<?php echo $product['id']; ?>)" class="small-button">Cancel</button>
+                                                    </div>
+                                                </form>
+                                            </div>
                                         </div>
 
                                         <div class="action-group order-actions">
@@ -811,7 +926,47 @@ try {
         </div>
     </div>
 </body>
+<style>
+.edit-product-form {
+    background: #f5f5f5;
+    padding: 15px;
+    margin-top: 10px;
+    border-radius: 4px;
+}
+
+.edit-product-form .form-group {
+    margin-bottom: 10px;
+}
+
+.edit-product-form .form-group label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.edit-product-form .input {
+    width: 100%;
+    padding: 5px;
+    margin-bottom: 5px;
+}
+
+.edit-product-form .button-group {
+    margin-top: 10px;
+}
+
+.edit-product-form .button-group button {
+    margin-right: 10px;
+}
+</style>
+
 <script>
+function showEditForm(id) {
+    document.getElementById('edit-form-' + id).style.display = 'block';
+}
+
+function hideEditForm(id) {
+    document.getElementById('edit-form-' + id).style.display = 'none';
+}
+
 // Update button text to include the amount from the nearby input
 document.addEventListener('input', function(e) {
     if (!e.target) return;

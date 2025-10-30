@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $name = trim($_POST['name']);
                 $country = trim($_POST['country']);
                 // Normalize empty country to a known value so duplicates are easier to detect
-                $country_norm = $country !== '' ? $country : 'onbekend';
+                $country_norm = $country !== '' ? $country : 'Unknown';
                 if ($name === '') {
                     $error = 'Factory name required';
                 } else {
@@ -41,16 +41,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } elseif ($_POST['action'] === 'delete_factory') {
                 $id = (int)$_POST['factory_id'];
-                $p = $pdo->prepare("SELECT COUNT(*) as cnt FROM product WHERE fabriekherkomst = (SELECT name FROM factories WHERE id = ?)");
-                $p->execute([$id]);
-                $c = $p->fetch();
-                if ($c && $c['cnt'] > 0) {
-                    $error = 'Factory has products; cannot delete. Reassign or remove products first.';
-                } else {
-                    $d = $pdo->prepare("DELETE FROM factories WHERE id = ?");
-                    $d->execute([$id]);
-                    $success = 'Factory deleted';
-                }
+                $stmt = $pdo->prepare("DELETE FROM factories WHERE id = ?");
+                $stmt->execute([$id]);
+                $success = 'Factory deleted';
             }
         } catch (PDOException $e) {
             // Log technisch detail (bijv. error_log) en geef gebruiker
@@ -84,19 +77,19 @@ try {
             <a href="dashboard.php" class="nav-title">Forever Tools</a>
             <div class="nav-links">
                 <?php if (!empty($_SESSION['admin'])): ?>
-                    <a href="showAccounts.php">Accounts beheren</a>
-                    <a href="createFactory.php">Fabrieken beheren</a>
+                    <a href="showAccounts.php">Manage Accounts</a>
+                    <a href="createFactory.php">Manage Factories</a>
                 <?php endif; ?>
                 <?php if (!empty($_SESSION['admin']) || !empty($_SESSION['medewerker'])): ?>
-                    <a href="showOrders.php">Orders beheren</a>
+                    <a href="showOrders.php">Manage Orders</a>
                 <?php endif; ?>
-                <a href="logout.php">Uitloggen</a>
+                <a href="logout.php">Log Out</a>
             </div>
         </div>
     </header>
     
     <div class="container">
-        <h2>Fabrieken beheren</h2>
+        <h2>Manage Locations</h2>
         <?php if (!empty($error)): ?>
             <div class="message error"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
@@ -104,7 +97,7 @@ try {
             <div class="message success"><?php echo htmlspecialchars($success); ?></div>
         <?php endif; ?>
 
-        <h3>Create Factory</h3>
+        <h3>Create Locations</h3>
         <form method="post" action="">
             <input type="hidden" name="action" value="create_factory">
             <div>
@@ -118,7 +111,7 @@ try {
             <button type="submit">Create</button>
         </form>
 
-        <h3>Existing Factories</h3>
+        <h3>Existing Locations</h3>
         <table class="product-table">
             <thead><tr><th>ID</th><th>Name</th><th>Country</th><th>Created</th><th>Actions</th></tr></thead>
             <tbody>

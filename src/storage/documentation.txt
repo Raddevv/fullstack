@@ -2,6 +2,10 @@ verschillende fabrieken selecteren
 - SELECT DISTINCT
 - 
 
+edit knop voor producten, zodat je iets kan aanpassen
+dropdown voor fabrieken zodat je fabriek kan selecteren
+fix de delete functionaliteit
+
 // ik doe dit voor mezelf als "dagelijkse stappen", maar ik laat het open zodat er meegekeken kan worden.
 //
 //

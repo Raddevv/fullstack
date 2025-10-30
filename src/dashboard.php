@@ -15,22 +15,43 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+// Get selected factory filter
+$selected_factory = isset($_GET['factory']) ? (int)$_GET['factory'] : 0;
+
 // fetch unique products with their details
 try {
-    // heeft p.id überhaupt functie?
-    $stmt = $pdo->query("
-        SELECT DISTINCT 
-            p.id,
-            p.type,
-            p.fabriekherkomst,
-            p.prijs,
-            p.waardeinkoop,
-            p.waardeverkoop,
-            p.stock,
-            p.bestelling_id
-        FROM product p
-        ORDER BY p.id DESC
-    ");
+    if ($selected_factory > 0) {
+        $stmt = $pdo->prepare("
+            SELECT DISTINCT 
+                p.id,
+                p.type,
+                p.fabriekherkomst,
+                p.prijs,
+                p.waardeinkoop,
+                p.waardeverkoop,
+                p.stock,
+                p.bestelling_id
+            FROM product p
+            JOIN factories f ON p.fabriekherkomst = f.name
+            WHERE f.id = ?
+            ORDER BY p.id DESC
+        ");
+        $stmt->execute([$selected_factory]);
+    } else {
+        $stmt = $pdo->query("
+            SELECT DISTINCT 
+                p.id,
+                p.type,
+                p.fabriekherkomst,
+                p.prijs,
+                p.waardeinkoop,
+                p.waardeverkoop,
+                p.stock,
+                p.bestelling_id
+            FROM product p
+            ORDER BY p.id DESC
+        ");
+    }
     $products = $stmt->fetchAll();
 } catch (PDOException $e) {
     $_SESSION['error'] = "Error fetching products: " . $e->getMessage();
@@ -76,13 +97,13 @@ try {
             <a href="dashboard.php" class="nav-title">Forever Tools</a>
             <div class="nav-links">
                 <?php if (!empty($_SESSION['admin'])): ?>
-                    <a href="showAccounts.php">Accounts beheren</a>
-                    <a href="createFactory.php">Fabrieken beheren</a>
+                    <a href="showAccounts.php">Manage Accounts</a>
+                    <a href="createFactory.php">Manage Factories</a>
                 <?php endif; ?>
                 <?php if (!empty($_SESSION['admin']) || !empty($_SESSION['medewerker'])): ?>
-                    <a href="showOrders.php">Orders beheren</a>
+                    <a href="showOrders.php">Manage Orders</a>
                 <?php endif; ?>
-                <a href="logout.php">Uitloggen</a>
+                <a href="logout.php">Log Out</a>
             </div>
         </div>
     </header>
@@ -90,10 +111,25 @@ try {
     <div class="container">
         <h1>Dashboard</h1>
 
-        <div style="margin-bottom:20px;">
-            <strong>Totale voorraadwaarde:</strong>
+            <!-- Factory filter -->
+            <div class="filter-section" style="margin-bottom:20px;">
+                <form method="get" action="" class="factory-filter">
+                    <label for="factory">Filter by Factory:</label>
+                    <select name="factory" id="factory" class="input" onchange="this.form.submit()">
+                        <option value="0">All Factories</option>
+                        <?php foreach ($factories as $f): ?>
+                            <option value="<?php echo $f['id']; ?>" <?php echo $selected_factory == $f['id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($f['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </form>
+            </div>
+
+            <div style="margin-bottom:20px;">
+            <strong>Total stock value:</strong>
             <span>€<?php echo number_format($total_inventory_value, 2, ',', '.'); ?></span>
-            <small style="color:#666; display:block;">(berekend op basis van inkoopwaarde per product)</small>
+            <small style="color:#666; display:block;">(Calculated on basis of stock value & stock amount)</small>
         </div>
 
         <?php if (isset($_SESSION['message'])): ?>
@@ -116,10 +152,10 @@ try {
 
         <?php if (!empty($low_stock_items)): ?>
             <div class="message warning">
-                <strong>Voorraad waarschuwing:</strong>
+                <strong>Stock warning:</strong>
                 <ul>
                 <?php foreach ($low_stock_items as $li): ?>
-                    <li><?php echo htmlspecialchars($li['type']); ?> (ID <?php echo htmlspecialchars($li['id']); ?>) - voorraad: <?php echo htmlspecialchars($li['stock'] ?? 0); ?></li>
+                    <li><?php echo htmlspecialchars($li['type']); ?> (ID <?php echo htmlspecialchars($li['id']); ?>) - stock: <?php echo htmlspecialchars($li['stock'] ?? 0); ?></li>
                 <!-- ?? in dit geval, stock aantal, anders 0 -->
                     <?php endforeach; ?>
                 </ul>
@@ -132,13 +168,13 @@ try {
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Type</th>
-                        <th>Fabriek</th>
-                        <th>Prijs</th>
-                        <th>Inkoop</th>
-                        <th>Verkoop</th>
-                        <th>Voorraad</th>
-                        <th>Acties</th>
+                        <th>Name</th>
+                        <th>Factory</th>
+                        <th>Price</th>
+                        <th>Purchase Value</th>
+                        <th>Sale Value</th>
+                        <th>Stock</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -155,8 +191,8 @@ try {
                                 <?php if (!empty($_SESSION['admin']) || !empty($_SESSION['medewerker'])): ?>
                                     <!-- Staff actions -->
                                     <div class="action-buttons">
-                                        <a href="orderInfo.php?action=edit&id=<?php echo $product['id']; ?>" class="button">Bewerken</a>
-                                        <a href="orderInfo.php?action=stock&id=<?php echo $product['id']; ?>" class="button">Voorraad</a>
+                                        <a href="orderInfo.php?action=edit&id=<?php echo $product['id']; ?>" class="button">Edit</a>
+                                        <a href="orderInfo.php?action=stock&id=<?php echo $product['id']; ?>" class="button">Stock</a>
                                     </div>
                                 <?php else: ?>
                                     <!-- Customer actions -->
@@ -164,7 +200,7 @@ try {
                                         <input type="hidden" name="action" value="add_to_cart">
                                         <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
                                         <input type="number" name="quantity" value="1" min="1" class="small-input">
-                                        <button type="submit" class="button">Bestellen</button>
+                                        <button type="submit" class="button">Order</button>
                                     </form>
                                 <?php endif; ?>
                             </td>
@@ -178,9 +214,9 @@ try {
         <div class="management-links">
             <h3>Management Links</h3>
             <ul>
-                <li><a href="orderInfo.php">Uitgebreid voorraad beheer</a></li>
-                <li><a href="createFactory.php">Fabrieken beheren</a></li>
-                <li><a href="showOrders.php">Orders overzicht</a></li>
+                <li><a href="orderInfo.php">Manage Stock</a></li>
+                <li><a href="createFactory.php">Manage Factories</a></li>
+                <li><a href="showOrders.php">Order List</a></li>
             </ul>
         </div>
         <?php endif; ?>
